@@ -1,0 +1,54 @@
+version: "3.9"
+
+name: rmf
+networks:
+  rmfnet:
+    name: rmfnet
+
+services:
+  api:
+    image: ghcr.io/open-rmf/rmf-web/api-server:jazzy
+    container_name: rmf-api
+    networks: [rmfnet]
+    environment:
+      - ROS_DOMAIN_ID=42
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+    ports:
+      - "8000:8000"
+      - "8006:8006"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  world:
+    image: ghcr.io/open-rmf/rmf/rmf_demos:jazzy-rmf-latest
+    container_name: rmf-world
+    networks: [rmfnet]
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      - ROS_DOMAIN_ID=42
+    command: >
+      bash -lc 'source /opt/ros/jazzy/setup.bash;
+      ros2 launch rmf_demos_gz office.launch.xml
+      headless:=1
+      server_uri:="http://rmf-api:8000/_internal"'
+    restart: unless-stopped
+
+  ui:
+    image: ghcr.io/open-rmf/rmf-web/demo-dashboard:jazzy-nightly
+    container_name: rmf-ui
+    networks: [rmfnet]
+    environment:
+      - PORT=3000
+      - RMF_SERVER_URL=https://8000-${CODESPACE_NAME}.github.dev
+      - TRAJECTORY_SERVER_URL=wss://8006-${CODESPACE_NAME}.github.dev
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    restart: unless-stopped

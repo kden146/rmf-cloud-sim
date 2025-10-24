@@ -1,0 +1,14 @@
+{
+  "name": "RMF Cloud Sim",
+  "postStartCommand": "docker compose -f compose.rmf.yml up -d",
+  "forwardPorts": [3000, 8000, 8006],
+  "portsAttributes": {
+    "3000": { "label": "RMF Dashboard", "onAutoForward": "openBrowser" },
+    "8000": { "label": "RMF API" },
+    "8006": { "label": "RMF Trajectory WS" }
+  },
+  "remoteEnv": {
+    "ROS_DOMAIN_ID": "42",
+    "RMW_IMPLEMENTATION": "rmw_cyclonedds_cpp"
+  }
+}
